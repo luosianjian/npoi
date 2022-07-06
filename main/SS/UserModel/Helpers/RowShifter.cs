@@ -60,6 +60,12 @@ namespace NPOI.SS.UserModel.Helpers
                 if (startRow + n <= merged.FirstRow && endRow + n >= merged.LastRow)
                 {
                     removedIndices.Add(i);
+                   
+                    merged.FirstRow = (/*setter*/merged.FirstRow + n);
+                    merged.LastRow = (/*setter*/merged.LastRow + n);
+                    //have to add it back, as new regions
+                    ShiftedRegions.Add(merged);   
+                   
                     continue;
                 }
 
