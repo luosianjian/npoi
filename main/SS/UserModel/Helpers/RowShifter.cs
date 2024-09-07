@@ -40,14 +40,17 @@ namespace NPOI.SS.UserModel.Helpers
         /**
          * Shifts, grows, or shrinks the merged regions due to a row Shift.
          * Merged regions that are completely overlaid by Shifting will be deleted.
-         *
+         * 
          * @param startRow the row to start Shifting
          * @param endRow   the row to end Shifting
          * @param n        the number of rows to shift
          * @return an array of affected merged regions, doesn't contain deleted ones
          */
         public List<CellRangeAddress> ShiftMergedRegions(int startRow, int endRow, int n)
-        {
+        {  /*
+             平移区域：startRow  - endRow 之间的所有行。
+             移动行数（距离）：n  
+             */
             List<CellRangeAddress> ShiftedRegions = new List<CellRangeAddress>();
             ISet<int> removedIndices = new HashSet<int>();
             //move merged regions completely if they fall within the new region boundaries when they are Shifted
@@ -56,24 +59,28 @@ namespace NPOI.SS.UserModel.Helpers
             {
                 CellRangeAddress merged = sheet.GetMergedRegion(i);
 
-                // remove merged region that overlaps Shifting
-                if (startRow + n <= merged.FirstRow && endRow + n >= merged.LastRow)
+                // 删除被“平移”区域完全覆盖的合并区域。  这里应该继续保留，该段代码注释掉 2024-09-07 17:33:49 lxj。
+                // remove merged region that overlaps Shifting .
+                //if (startRow + n <= merged.FirstRow && endRow + n >= merged.LastRow)
+                //{
+                //    removedIndices.Add(i);
+                //    continue;
+                //}
+
+                #region 合并区域在 移动区域 上方的不做处理      
+
+                bool inStart = (merged.FirstRow >= startRow || merged.LastRow >= startRow);// 合并区域 在平移起点 下方
+                bool inEnd = (merged.FirstRow <= endRow || merged.LastRow <= endRow); // 合并区域在 平移终点 上方
+
+                //don't check if it's not within the Shifted area。
+                if (!inStart || !inEnd) // 等效于 (!(inStart && inEnd))
                 {
-                    removedIndices.Add(i);
                     continue;
                 }
-
-                bool inStart = (merged.FirstRow >= startRow || merged.LastRow >= startRow);
-                bool inEnd = (merged.FirstRow <= endRow || merged.LastRow <= endRow);
-
-                //don't check if it's not within the Shifted area
-                if (!inStart || !inEnd)
-                {
-                    continue;
-                }
+                #endregion
 
                 //only shift if the region outside the Shifted rows is not merged too
-                if (!merged.ContainsRow(startRow - 1) && !merged.ContainsRow(endRow + 1))
+                if (!merged.ContainsRow(startRow - 1) && !merged.ContainsRow(endRow + 1))//合并区域没有把平移区域完全覆盖的，该区域也整体平移
                 {
                     merged.FirstRow = (/*setter*/merged.FirstRow + n);
                     merged.LastRow = (/*setter*/merged.LastRow + n);
@@ -83,7 +90,7 @@ namespace NPOI.SS.UserModel.Helpers
                 }
             }
 
-            if (!(removedIndices.Count==0)/*.IsEmpty()*/)
+            if (!(removedIndices.Count == 0)/*.IsEmpty()*/)
             {
                 sheet.RemoveMergedRegions(removedIndices.ToList());
             }
